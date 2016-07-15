@@ -49,6 +49,11 @@ export default BaseAdapter.extend({
   },
 
   trackEvent(options = {}) {
+    if (options.hasOwnProperty('label')) {
+      options['event'] = options['label']
+      delete options['label']
+    }
+
     const compactedOptions = compact(options);
     const { event } = compactedOptions;
     const props = without(compactedOptions, 'event');

@@ -4,7 +4,7 @@ module.exports = function(environment) {
   var ENV = {
     modulePrefix: 'dummy',
     environment: environment,
-    baseURL: '/',
+    rootURL: '/',
     locationType: 'auto',
     EmberENV: {
       FEATURES: {
@@ -19,7 +19,7 @@ module.exports = function(environment) {
     },
 
     'ember-metrics': {
-      includeAdapters: ['segment', 'google-tag-manager', 'piwik']
+      includeAdapters: ['segment', 'google-tag-manager', 'piwik', 'facebook-pixel']
     },
 
     metricsAdapters: [
@@ -36,6 +36,14 @@ module.exports = function(environment) {
         // environments: ['all'],
         config: {
           token: '0f76c037-4d76-4fce-8a0f-a9a8f89d1453'
+        }
+      },
+      {
+        // if `environments` is undefined, it defaults to all
+        name: 'Intercom',
+        // environments: ['all'],
+        config: {
+          appId: 'def1abc2'
         }
       },
       {
@@ -58,7 +66,6 @@ module.exports = function(environment) {
 
   if (environment === 'test') {
     // Testem prefers this...
-    ENV.baseURL = '/';
     ENV.locationType = 'none';
 
     // keep test console output quieter

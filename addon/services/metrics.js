@@ -1,5 +1,4 @@
 import Ember from 'ember';
-import getOwner from 'ember-getowner-polyfill';
 
 const {
   Service,
@@ -8,8 +7,10 @@ const {
   get,
   set,
   copy,
+  makeArray,
   A: emberArray,
-  String: { dasherize }
+  String: { dasherize },
+  getOwner
 } = Ember;
 const { keys } = Object;
 const assign = Ember.assign || Ember.merge;
@@ -121,7 +122,7 @@ export default Service.extend({
 
     const cachedAdapters = get(this, '_adapters');
     const allAdapterNames = keys(cachedAdapters);
-    const [selectedAdapterNames, options] = args.length > 1 ? [[args[0]], args[1]] : [allAdapterNames, args[0]];
+    const [selectedAdapterNames, options] = args.length > 1 ? [makeArray(args[0]), args[1]] : [allAdapterNames, args[0]];
     const context = copy(get(this, 'context'));
     const mergedOptions = assign(context, options);
 

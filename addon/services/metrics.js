@@ -78,7 +78,9 @@ export default Service.extend({
 
   trackEvent(...args) {
     // pass event arg to FB, Mixpanel etc. They don't use label.
-    args[0].event = args[0].label
+    if (args[0].label) {
+      args[0].event = args[0].label;
+    }
     this.invoke('trackEvent', ...args);
   },
 

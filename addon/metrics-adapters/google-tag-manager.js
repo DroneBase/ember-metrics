@@ -1,17 +1,12 @@
-import Ember from 'ember';
+import { assign } from '@ember/polyfills';
+import { assert } from '@ember/debug';
+import { getWithDefault, set, get } from '@ember/object';
+import { capitalize } from '@ember/string';
 import canUseDOM from '../utils/can-use-dom';
 import objectTransforms from '../utils/object-transforms';
+import removeFromDOM from '../utils/remove-from-dom';
 import BaseAdapter from './base';
 
-const {
-  assert,
-  get,
-  set,
-  $,
-  getWithDefault,
-  String: { capitalize }
-} = Ember;
-const assign = Ember.assign || Ember.merge;
 const {
   compact
 } = objectTransforms;
@@ -86,9 +81,9 @@ export default BaseAdapter.extend({
   },
 
   willDestroy() {
-    if (canUseDOM) {
-      $('script[src*="gtm.js"]').remove();
-      delete window.dataLayer;
-    }
+    if (!canUseDOM) { return; }
+    removeFromDOM('script[src*="gtm.js"]');
+
+    delete window.dataLayer;
   }
 });

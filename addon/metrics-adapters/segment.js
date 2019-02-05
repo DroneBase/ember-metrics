@@ -1,14 +1,10 @@
-import Ember from 'ember';
+import { assert } from '@ember/debug';
+import { get } from '@ember/object';
+import { assign } from '@ember/polyfills';
 import canUseDOM from '../utils/can-use-dom';
+import removeFromDOM from '../utils/remove-from-dom';
 import { compact } from '../utils/object-transforms';
 import BaseAdapter from './base';
-
-const {
-  $,
-  assert,
-  copy,
-  get
-} = Ember;
 
 export default BaseAdapter.extend({
   toStringExtension() {
@@ -16,15 +12,15 @@ export default BaseAdapter.extend({
   },
 
   init() {
-    const config = copy(get(this, 'config'));
+    const config = assign({}, get(this, 'config'));
     const segmentKey = config.key;
 
     assert(`[ember-metrics] You must pass a valid \`key\` to the ${this.toString()} adapter`, segmentKey);
 
     if (canUseDOM) {
-      /* jshint ignore:start */
+      /* eslint-disable */
       window.analytics=window.analytics||[],window.analytics.methods=["identify","group","track","page","pageview","alias","ready","on","once","off","trackLink","trackForm","trackClick","trackSubmit"],window.analytics.factory=function(t){return function(){var a=Array.prototype.slice.call(arguments);return a.unshift(t),window.analytics.push(a),window.analytics}};for(var i=0;i<window.analytics.methods.length;i++){var key=window.analytics.methods[i];window.analytics[key]=window.analytics.factory(key)}window.analytics.load=function(t){if(!document.getElementById("analytics-js")){var a=document.createElement("script");a.type="text/javascript",a.id="analytics-js",a.async=!0,a.src=("https:"===document.location.protocol?"https://":"http://")+"cdn.segment.com/analytics.js/v1/"+t+"/analytics.min.js";var n=document.getElementsByTagName("script")[0];n.parentNode.insertBefore(a,n)}},window.analytics.SNIPPET_VERSION="2.0.9";
-      /* jshint ignore:end */
+      /* eslint-enable */
       window.analytics.load(segmentKey);
     }
   },
@@ -70,9 +66,9 @@ export default BaseAdapter.extend({
   },
 
   willDestroy() {
-    if(canUseDOM) {
-      $('script[src*="segment.com"]').remove();
-      delete window.analytics;
-    }
+    if (!canUseDOM) { return; }
+    removeFromDOM('script[src*="segment.com"]');
+
+    delete window.analytics;
   }
 });

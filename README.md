@@ -58,16 +58,8 @@ Writing your own adapters for currently unsupported analytics services is easy t
 
 ## Installing The Addon
 
-For Ember CLI >= `0.2.3`:
-
 ```shell
 ember install ember-metrics
-```
-
-For Ember CLI < `0.2.3`:
-
-```shell
-ember install:addon ember-metrics
 ```
 
 ## Configuration
@@ -201,33 +193,27 @@ contentSecurityPolicy: {
 In order to use the addon, you must first [configure](#configuration) it, then inject it into any Object registered in the container that you wish to track. For example, you can call a `trackPage` event across all your analytics services whenever you transition into a route, like so:
 
 ```js
-// app/router.js
-import EmberRouter from '@ember/routing/router';
-import config from './config/environment';
-import { get } from '@ember/object';
+// app/routes/application.js
+import Route from '@ember/routing/route';
 import { inject as service } from '@ember/service';
-import { scheduleOnce } from '@ember/runloop';
 
-const Router = EmberRouter.extend({
-  location: config.locationType,
+export default Route.extend({
   metrics: service(),
+  router: service(),
 
-  didTransition() {
+  init() {
     this._super(...arguments);
-    this._trackPage();
-  },
 
-  _trackPage() {
-    scheduleOnce('afterRender', this, () => {
-      const page = this.get('url');
-      const title = this.getWithDefault('currentRouteName', 'unknown');
+    let router = this.router;
+    router.on('routeDidChange', () => {
+      const page = router.currentURL;
+      const title = router.currentRouteName || 'unknown';
 
-      get(this, 'metrics').trackPage({ page, title });
+      this.metrics.trackPage({ page, title });
     });
   }
 });
 
-export default Router.map(/* ... */);
 ```
 
 If you wish to only call a single service, just specify it's name as the first argument:
@@ -244,9 +230,60 @@ metrics.trackPage('GoogleAnalytics', {
 Often, you may want to include information like the current user's name with every event or page view that's tracked. Any properties that are set on `metrics.context` will be merged into options for every Service call.
 
 ```js
-Ember.set(this, 'metrics.context.userName', 'Jimbo');
-Ember.get(this, 'metrics').trackPage({ page: 'page/1' }); // { userName: 'Jimbo', page: 'page/1' }
+import { set } from '@ember/object';
+
+set(this, 'metrics.context.userName', 'Jimbo');
+this.metrics.trackPage({ page: 'page/1' }); // { userName: 'Jimbo', page: 'page/1' }
 ```
+
+## Octane / Native Class usage
+
+If you are living on the edge and using an app built with the [Ember Octane Blueprint](https://github.com/ember-cli/ember-octane-blueprint) or otherwise implementing Native Class syntax in your routes, the following example can be used to report route transitions to ember-metrics:
+
+```js
+// app/routes/application.js
+import Route from '@ember/routing/route';
+import { action } from '@ember/object';
+import { inject as service } from '@ember/service';
+import { scheduleOnce } from '@ember/runloop';
+
+export default class ApplicationRoute extends Route {
+  @service metrics
+  @service router
+
+  @action
+  didTransition() {
+    this._super(...arguments);
+    this._trackPage();
+  }
+
+  _trackPage() {
+    scheduleOnce('afterRender', () => {
+      const page = this.router.currentURL;
+      const title = this.router.currentRouteName;
+
+      this.metrics.trackPage({ page, title });
+    })
+  }
+}
+```
+
+And then in your other routes you can simply add a didTransition action that returns true and thus "bubbles up" to the application route and calls _trackPage:
+
+```js
+// app/routes/home.js
+import Route from '@ember/routing/route';
+import { action } from '@ember/object';
+
+export default class HomeRoute extends Route {
+  @action
+  didTransition() {
+    this._super(...arguments);
+    return true;
+  }
+}
+```
+
 
 ### API
 
@@ -286,13 +323,15 @@ If an adapter implements specific methods you wish to call, then you can use `in
 If your app implements dynamic API keys for various analytics integration, you can defer the initialization of the adapters. Instead of configuring `ember-metrics` through `config/environment`, you can call the following from any Object registered in the container:
 
 ```js
-import Ember from 'ember';
+import { Route } from '@ember/routing/route';
+import { inject as service } from '@ember/service';
 
-export default Ember.Route.extend({
-  metrics: Ember.inject.service(),
+export default Route.extend({
+  metrics: service(),
+
   afterModel(model) {
-    const metrics = Ember.get(this, 'metrics');
-    const id = Ember.get(model, 'googleAnalyticsKey');
+    const metrics = this.metrics;
+    const id = model.googleAnalyticsKey;
 
     metrics.activateAdapters([
       {
@@ -370,7 +409,9 @@ module.exports = function(environment) {
 
 ## Testing
 
-For unit tests, you will need to specify the adapters in use under `needs`, like so:
+For unit tests using old QUnit testing API (prior to
+[RFC 232](https://github.com/emberjs/rfcs/blob/master/text/0232-simplify-qunit-testing-api.md)),
+you will need to specify the adapters in use under `needs`, like so:
 
 ```js
 moduleFor('route:foo', 'Unit | Route | foo', {
